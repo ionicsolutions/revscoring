@@ -35,7 +35,7 @@ class Revision(DependentSet):
                             if_missing=(TextDeleted, revision.text))
 
         if hasattr(revision, 'parent'):
-            parent_id = key('parentid', rev_doc, name=revision.parent.id.name)
+            parent_id = self._get_parent_id(revision, rev_doc)
             parent_doc = extractor.get_rev_doc_by_id(revision.parent)
             self.parent = Revision(revision.parent, extractor, parent_doc,
                                    id_datasource=parent_id)
@@ -46,6 +46,8 @@ class Revision(DependentSet):
         if hasattr(revision, 'user'):
             self.user = RevisionUser(revision, extractor, rev_doc)
 
+    def _get_parent_id(self, revision, rev_doc):
+        return key('parentid', rev_doc, name=revision.parent.id.name)
 
 class RevisionPage(DependentSet):
 
