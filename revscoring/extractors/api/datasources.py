@@ -91,3 +91,16 @@ class LastUserRevDoc(Datasource):
 
         return self.extractor.get_last_user_revision(user_text, rev_timestamp,
                                                      ucprop=ucprop)
+
+
+class FlaggedRevDoc(Datasource):
+
+    def __init__(self, revision, extractor):
+        self.revision = revision
+        self.extractor = extractor
+
+        super().__init__(revision._name + ".flagged.doc", self.process,
+                         depends_on=[revision.id, revision.page.id])
+
+    def process(self, rev_id, page_id):
+        return self.extractor.get_flagged_parent(rev_id, page_id)

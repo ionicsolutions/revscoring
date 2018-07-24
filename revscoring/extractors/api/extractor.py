@@ -1,4 +1,5 @@
 import logging
+import requests
 from itertools import islice
 
 import mwapi
@@ -8,7 +9,7 @@ from .. import Extractor as BaseExtractor
 from ...datasources import Datasource, revision_oriented
 from ...dependencies import expand
 from ...errors import RevisionNotFound, UserNotFound
-from .revision_oriented import Revision
+from .revision_oriented import FlaggedRevision as Revision
 from .util import REV_PROPS, USER_PROPS
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,9 @@ class Extractor(BaseExtractor):
 
     def get_rev_doc_by_id(self, revision):
         return datasources.RevDocById(revision, self)
+
+    def get_flagged_rev_doc(self, revision, page):
+        return datasources.FlaggedRevDoc(revision, self)
 
     def get_page_creation_rev_doc(self, page):
         return datasources.PageCreationRevDoc(page, self)
@@ -241,6 +245,14 @@ class Extractor(BaseExtractor):
 
                 for page_doc in doc['query'].get('pages', {}).values():
                     yield from _normalize_revisions(page_doc)
+
+    def get_flagged_parent(self, rev_id, page_id):
+        resp = requests.get("http://tools.wmflabs.org/kokolores/api/v1/%s/parent/%s/%s"
+                            % ("de", rev_id, page_id))
+        doc = resp.json()
+        print(doc)
+        return doc
+
 
     def get_user_doc_map(self, user_texts,
                          usprop={'groups', 'registration', 'emailable',

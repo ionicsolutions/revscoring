@@ -5,6 +5,7 @@ import mwtypes
 from ...datasources import Datasource
 from ...dependencies import DependentSet
 from ...errors import CommentDeleted, TextDeleted, UserDeleted
+from .datasources import FlaggedRevDoc
 from .util import key, key_exists, or_none
 
 logger = logging.getLogger(__name__)
@@ -34,11 +35,14 @@ class Revision(DependentSet):
             self.text = key('*', rev_doc, name=revision.text.name,
                             if_missing=(TextDeleted, revision.text))
 
-        if hasattr(revision, 'parent'):
-            parent_id = self._get_parent_id(revision, rev_doc)
-            parent_doc = extractor.get_rev_doc_by_id(revision.parent)
-            self.parent = Revision(revision.parent, extractor, parent_doc,
-                                   id_datasource=parent_id)
+        try:
+            if hasattr(revision, 'parent'):
+                parent_id = self._get_parent_id(revision)
+                parent_doc = extractor.get_rev_doc_by_id(revision.parent)
+                self.parent = Revision(revision.parent, extractor, parent_doc,
+                                       id_datasource=parent_id)
+        except AttributeError:
+            pass
 
         if hasattr(revision, 'page'):
             self.page = RevisionPage(revision.page, extractor, rev_doc)
@@ -46,8 +50,25 @@ class Revision(DependentSet):
         if hasattr(revision, 'user'):
             self.user = RevisionUser(revision, extractor, rev_doc)
 
-    def _get_parent_id(self, revision, rev_doc):
-        return key('parentid', rev_doc, name=revision.parent.id.name)
+    def _get_parent_id(self, revision):
+        return key('parentid', self.doc, name=revision.parent.id.name)
+
+
+class FlaggedRevision(Revision):
+
+    def __init__(self, revision, extractor, rev_doc, id_datasource=None):
+        super().__init__(revision, extractor, rev_doc, id_datasource)
+        self.flagged_doc = FlaggedRevDoc(revision, extractor)
+
+        if hasattr(revision, 'parent'):
+            parent_id = self._get_parent_id(revision)
+            parent_doc = extractor.get_rev_doc_by_id(revision.parent)
+            self.parent = Revision(revision.parent, extractor, parent_doc,
+                                   id_datasource=parent_id)
+
+    def _get_parent_id(self, revision):
+        return key('parentid', self.flagged_doc, name=revision.parent.id.name)
+
 
 class RevisionPage(DependentSet):
 
